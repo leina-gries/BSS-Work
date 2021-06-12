@@ -1,0 +1,67 @@
+import geopandas
+import pandas as pd
+
+
+f = open('/Users/leinagries/Desktop/savingdatatester2.txt', "r")
+holder = []
+second = []
+third = []
+for line in f:
+    line.strip("'")
+    x = line.split(",")
+    holder.append(x)
+
+b1 = []
+b2 = []
+b3 = []
+for line in holder:
+    for element in line:
+        test = element.strip()
+        done = test.strip("'")
+        partition = done.partition('.')
+        try:
+            float(done)
+            b1.append(float(done))
+        except:
+            try:
+                int(done)
+                b1.append(int(done))
+            except:
+                b1.append(done)
+
+
+        #print(done)
+    b2.append(b1)
+    b1 = []
+
+
+lst = [['tom', 25], ['krish', 30],
+       ['nick', 26], ['juli', 22]]
+
+df = pd.DataFrame(b2, columns =['ObjectID', 'Aircraft Type', 'Description', 'Callsign', 'Latitude','Longitude','Altitude'])
+
+gdf = geopandas.GeoDataFrame(
+    df, geometry=geopandas.points_from_xy(df.Longitude, df.Latitude))
+
+
+print(gdf)
+
+
+
+
+
+
+
+
+#df = pd.read_csv(
+#    path_to_data, sep=",",header=None)
+#print(df)
+#gdf = geopandas.read_file(path_to_data)
+
+#gdf
+print("woot")
+#print(gdf)
+
+
+#should = geopandas.read_file("savingdatatester.txt")
+#print(should)
