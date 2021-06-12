@@ -1,0 +1,95 @@
+import os.path
+import pandas as pd
+#import geopandas as gp
+#import fiona
+#import shapely
+import socket
+"""
+#Package incoming data as a geopandas dataframe with point data
+def send_data(data):
+
+    #Split the comma-delimited string
+    pos_array=data.split(',')
+
+    #Build a pandas dataframe
+    pos_dataframe = pd.DataFrame({"Callsign":[pos_array[0]], "Latitude":[pos_array[1]],
+    "Longitude":[pos_array[2]], "Altitude":[pos_array[3]]})
+    #print(pos_dataframe)
+
+    #Convert to a geopandas dataframe with point data
+    gdf = gp.GeoDataFrame(pos_dataframe, geometry=gp.points_from_xy(pos_dataframe.Longitude, pos_dataframe.Latitude))
+    print(gdf)
+
+    #Append data to a GeoJSON
+    gdf.to_file("test.geojson", driver='GeoJSON', mode="a")
+    """
+
+"""
+    #Log in to ArcGIS
+    # import the GIS class in gis module
+    from arcgis.gis import GIS
+    import requests
+    print("ArcGIS Online Org account")
+    gis = GIS("https://www.arcgis.com", "RABecker01", "NfQT704_@P")
+    print("Logged in as " + str(gis.properties.user.username))
+    """
+
+HOST = '10.8.0.6'  # Standard loopback interface address (TBM IP)
+#HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+PORT = 11194      # Port to listen on (non-privileged ports are > 1023)
+
+
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+
+    # these are necesaary for it to work and not bring up the already in use error
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    print("Call Initiated")
+    s.bind((HOST, PORT))
+    print("Bound to", HOST, "at port number", PORT)
+    s.listen()
+    print("Listening...")
+    conn, addr = s.accept()
+    print("Connection made, accepting data")
+    with conn:
+        f = open("savingdatatester2.txt", "w")
+        print('Connected by', addr)
+        while True:
+            try:
+                print("***********1***********")
+                data = conn.recv(1024)
+                #Decode data (to get rid of 'b' prefix)
+                data = data.decode('utf-8')
+
+                x = repr(data).split(",")
+                print(x)
+                f.write(str(x))
+                #print(repr(data))
+                f.write("\n")
+            except KeyboardInterrupt:
+                print("***********2***********")
+                print("i want to close client socket2")
+                #conn.shutdown(1)  # this makes sure it happens in a timely manner, close then closes it
+                #conn.close()  # conn is because this is the listening side, otherwise we are trying to send and cant
+                #s.shutdown(1)
+                s.shutdown(2)
+                s.close()
+                f.close()
+                break
+            except socket.error:
+                print("************3**********")
+                print("a socket erro has occured, e = ", socket.error)
+                #conn.shutdown(1)  # this makes sure it happens in a timely manner, close then closes it
+                #conn.close()  # conn is because this is the listening side, otherwise we are trying to send and cant
+                f.close()
+                break
+            #send_map(repr(data))
+            if not data:
+                print("***********4***********")
+                #conn.shutdown(1)  # this makes sure it happens in a timely manner, close then closes it
+                #conn.close()  # conn is because this is the listening side, otherwise we are trying to send and cant
+                f.close()
+                break
+        #conn.close()
+            #conn.sendall(data)
