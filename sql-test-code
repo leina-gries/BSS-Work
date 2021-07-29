@@ -1,0 +1,178 @@
+import mysql.connector
+from mysql.connector import errorcode
+print("1")
+
+try:
+    print("2")
+    cnx = mysql.connector.connect(user='root', password='bsspass',
+                              host='34.106.47.33')  # removed database='tester_manual'
+except mysql.connector.Error as err:
+  if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+    print("Something is wrong with your user name or password")
+  elif err.errno == errorcode.ER_BAD_DB_ERROR:
+    print("Database does not exist")
+  else:
+    print(err)
+else:  # connected to general db
+    print("3")
+    cursor = cnx.cursor() # where you are
+    try:   # creating the proper database if neessary
+        cursor.execute("CREATE DATABASE pythontesterdb1")  # ONLY MAKES THIS DATABASE IF IT DOES NOT ALREADY EXIST
+    except mysql.connector.Error as err:
+        if err.errno == 1007:
+            print("The database already exists")
+    cursor.execute("SHOW DATABASES")
+    for db in cursor:
+       print("Database in cursor:", db)
+
+    cursor.execute("USE pythontesterdb1")
+    cursor.execute("SELECT DATABASE() FROM DUAL")
+    for i in cursor:
+        print("Currently selected database is", i[0])
+
+    print("3.5")
+
+    # now, need to connect to the proper db
+
+    print("herehere")
+    cursor.execute("SHOW PROCESSLIST")
+    for i in cursor:
+        print(i)
+    cursor.execute("SELECT table_schema 'flightdata', sum( data_length + index_length ) / 1024 / 1024 'Data Base Size in MB' FROM information_schema.TABLES GROUP BY table_schema ")
+    print("select table")
+    for i in cursor:
+        print(i)
+    #print("new direction")
+    #cursor.execute("SELECT ObjectID, sum( if( itemname = 'A', itemvalue, 0 ) ) AS A, sum( if( itemname = 'B', itemvalue, 0 ) ) AS B, sum( if( itemname = 'C', itemvalue, 0 ) ) AS C FROM flightdata GROUP BY ObjectID")
+    #for i in cursor:
+    #    print(i)
+    TABLES = {}
+    # this is already specific, make it more general in future
+    TABLES['flightdata'] = (
+        "CREATE TABLE `flightdata` ("  # are these quotes necessary??
+        "  `ObjectID` int(11) NOT NULL," # can autoincremenent in future
+        "  `RunDate` date NOT NULL,"
+        "  `MidDecimal` DECIMAL(5,2)  NOT NULL,"  # decimal, 5 precision 2 after decimal point
+        "  `Description` varchar(200) NOT NULL,"  # string that can change length from the one you create the table with, max 200 characters
+        "  `Callsign` varchar(50) NOT NULL,"
+        "  `Latitude` DECIMAL(8,6) NOT NULL,"
+        "  `Longitude` DECIMAL(8,6) NOT NULL,"
+        "  `Altitude` DECIMAL(10,6) NOT NULL,"
+        "  PRIMARY KEY (`ObjectID`))")
+
+    # creates the table if it does not alreadt exist
+    print("4")
+
+    for table_name in TABLES:
+        table_description = TABLES[table_name]
+        try:
+            print("Creating table {}: ".format(table_name), end='')
+            cursor.execute(table_description)
+        except mysql.connector.Error as err:    # temp, for learning, change to if not exists soon
+            if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+                print("already exists.")
+            else:
+                print(err.msg)
+        else:
+            print("OK")
+
+    ObjectID1 = 1234
+    RunDate1 = "02/26/2001"
+    MidDecimal1 = 0.0
+    Description1 = "FS3D Airspray BAe 146-200 - Tanker 170"
+    Callsign1 = " Callsign 9999"
+    Latitude1 = 30.433974
+    Longitude1 = -86.527819
+    Altitude1 = 8065.363787
+
+    sql = "INSERT INTO customers (name, address) VALUES (%s, %s)"
+    val = ("John", "Highway 21")
+
+
+
+
+
+    ######add_salary = ("INSERT INTO flight-data" "(ObjectID, RunDate, MidDecimal, Description, Callsign, Latitude, Longitude, Altitude)"  "VALUES (ObjectID1, RunDate1, MidDecimal1, Description,1 Callsign1, Latitude1, Longitude1, Altitude1)")
+
+
+    #data_salary = {'ObjectID': ObjectID, 'RunDate': RunDate, 'MidDecimal': MidDecimal, 'Description': Description, 'Callsign': Callsign, 'Latitude': Latitude, 'Longitude': Longitude, 'Altitude': Altitude}
+    #######cursor.execute(add_salary)
+    #tester2 = "INSERT INTO flight-data ( ObjectID, RunDate, MidDecimal, Description, Callsign, Latitude, Longitude, Altitude ) VALUES ( ObjectID1, RunDate1, MidDecimal1, Description1, Callsign1, Latitude1, Longitude1, Altitude1)"
+    tester2 = "INSERT INTO flightdata (`ObjectID`, `RunDate`, `MidDecimal`, `Description`, `Callsign`, `Latitude`, `Longitude`, `Altitude` ) VALUES (1238, '2001-02-26', 1.1, 'FS3D Airspray BAe 146-200 - Tanker 170', 'Callsign 9999', 30.433974, -86.527819, 8065.363787)"
+
+    cursor.execute(tester2)
+
+    #### note: cannot add multiple entries with the same primary key.
+    #may be because it is empty but not working
+    query1= ("SELECT * FROM flightdata") # how to make this universal?
+    cursor.execute(query1)
+    for entry in cursor:
+        print(entry)
+
+
+
+
+    #add_row = ("INSERT INTO cats" "(name, owner, birth)" "VALUES ( 'Sandy2', 'Lennon2', '2015-01-03' )")
+
+
+
+
+
+    # add_cat = ("INSERT INTO cats" "(name, owner, birth)" "VALUES ( 'Sandy2', 'Lennon2', '2015-01-03' )") # makes the row to be added
+    # cursor.execute(add_cat) # adds the row
+
+    cnx.commit() # makes sure it is updated
+
+    # query= ("SELECT * FROM cats")
+    # cursor.execute(query)
+    # for (entry) in cursor:
+         # print(entry)
+    cursor.close()
+    cnx.close()
+finally:
+    if cnx.is_connected():
+        cursor.close()
+        cnx.close()
+        print("MySQL connection is closed")
+
+
+
+
+
+
+"""
+import mysql.connector
+from mysql.connector.constants import ClientFlag
+print([ClientFlag.SSL])
+
+#config = {
+#    'user': 'root',
+#    'password': 'rainsqltest',
+#    'host': '34.125.107.39',
+#    'client_flags': [ClientFlag.SSL],
+#    'ssl_ca': 'ssl/server-ca.pem',
+#    'ssl_cert': 'ssl/client-cert.pem',
+#    'ssl_key': 'ssl/client-key.pem'
+#}
+
+# now we establish our connection
+print("here2")
+cnxn = mysql.connector.connect( user = 'root',
+    password= 'rainsqltest',
+    host=  '34.125.107.39',
+    client_flags =  [ClientFlag.SSL],
+    ssl_ca =  'ssl/server-ca.pem',
+    ssl_cert=  'ssl/client-cert.pem',
+    ssl_key= 'ssl/client-key.pem')
+print("we are connected")
+
+
+
+cursor = cnxn.cursor()  # initialize connection cursor
+cursor.execute('CREATE DATABASE testdb')  # create a new 'testdb' database
+cnxn.close()  # close connection because we will be reconnecting to testdb
+
+config['database'] = 'testdb'  # add new database to config dict
+cnxn = mysql.connector.connect(**config)
+cursor = cnxn.cursor()
+"""
