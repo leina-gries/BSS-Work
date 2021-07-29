@@ -1,6 +1,9 @@
 import os.path
 import pandas as pd
-#import geopandas as gp
+import geopandas as gp
+from arcgis.gis import GIS
+import requests
+import time
 #import fiona
 #import shapely
 import socket
@@ -24,15 +27,17 @@ def send_data(data):
     gdf.to_file("test.geojson", driver='GeoJSON', mode="a")
     """
 
-"""
-    #Log in to ArcGIS
-    # import the GIS class in gis module
-    from arcgis.gis import GIS
-    import requests
-    print("ArcGIS Online Org account")
-    gis = GIS("https://www.arcgis.com", "RABecker01", "NfQT704_@P")
-    print("Logged in as " + str(gis.properties.user.username))
-    """
+#Log in to ArcGIS
+# import the GIS class in gis module
+start_time = time.strftime("%H:%M:%S")
+print(start_time)
+
+
+#print("ArcGIS Online Org account")
+#gis = GIS("https://www.arcgis.com", "tbmaynard395", "n;d+4Hgp35<s-t!")
+
+#print("Logged in as " + str(gis.properties.user.username))
+
 
 HOST = '10.8.0.6'  # Standard loopback interface address (TBM IP)
 #HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
@@ -45,31 +50,138 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     # these are necesaary for it to work and not bring up the already in use error
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    print("Call Initiated")
+    print("\nCall Initiated")
     s.bind((HOST, PORT))
-    print("Bound to", HOST, "at port number", PORT)
+    print("\nBound to", HOST, "at port number", PORT)
     s.listen()
-    print("Listening...")
+    print("\nListening...")
     conn, addr = s.accept()
-    print("Connection made, accepting data")
+    print("\nConnection made, accepting data")
+    chunk_counter = 0
+    round_counter = 0
+    b_holder = []
     with conn:
         f = open("savingdatatester2.txt", "w")
-        print('Connected by', addr)
+        print('\nConnected by', addr)
         while True:
             try:
-                print("***********1***********")
+                print("\n ***********1***********")
+                if round_counter == 0:
+                    print (time.strftime("trying, %H:%M:%S"))
                 data = conn.recv(1024)
+                if round_counter == 0:
+                    print (time.strftime("connected, %H:%M:%S"))
                 #Decode data (to get rid of 'b' prefix)
                 data = data.decode('utf-8')
+                if round_counter == 0:
+                    print (time.strftime("decoded, %H:%M:%S"))
 
                 x = repr(data).split(",")
+                print("\nhere")
                 print(x)
+
+                # formattiing the data to be passed into pandas
+                b1 = []
+                b2 = []
+                good_holder = []
+                for element in x:
+                    test = element.strip()
+                    done = test.strip("'")
+                    partition = done.partition('.')
+                    try:
+                        float(done)
+                        b1.append(float(done))
+                    except:
+                        try:
+                            int(done)
+                            b1.append(int(done))
+                        except:
+                            b1.append(done)
+                print("\n \n here is b1 *******************************")
+                print(b1)
+
+
+                #print(done)
+
+
+                # pandas section
+                if len(b1) == 7:
+
+                    df = pd.DataFrame([b1], columns =['ObjectID', 'Aircraft Type', 'Description', 'Callsign', 'Latitude','Longitude','Altitude'])
+
+                    gdf = gp.GeoDataFrame(
+                        df, geometry=gp.points_from_xy(df.Longitude, df.Latitude))
+
+                    b1 = []
+                    print("\n here2")
+                    print(df)
+                    print("\n here3")
+                    print(gdf)
+                    gdf.to_file("jun17tester.geojson", driver='GeoJSON')
+                else:
+                    pass
+                    """
+                    print("did this ********************************")
+                    for i in range(int((len(b1)/7))):
+                        if len(b1) >= 7:
+                            for i in range(0,7):
+                                b_holder.append(b1[0])
+                                b1.remove(b1[0])
+                            print(b_holder, "HOLDER ******************************** HOLDER")
+                            #df = pd.DataFrame([b_holder], columns =['ObjectID', 'Aircraft Type', 'Description', 'Callsign', 'Latitude','Longitude','Altitude'])
+
+                            #gdf = gp.GeoDataFrame(
+                                #df, geometry=gp.points_from_xy(df.Longitude, df.Latitude))
+                            print("\n here2.0")
+                            #print(df)
+                            print("\n here3.0")
+                            #print(gdf)
+                            b_holder = []
+
+                        else:
+                            for i in b1:
+                                b_holder.append(i)
+                    """
+
+
+
+
+                    chunk_counter += 1
+                    print("\n we got a chunk. It had length", len(b1), "instead of 7. It was saved to the file but not made into a JSON right now")
+
+                ##search_result = gis.content.search('title:Aircraft_Position')
+
+                ##Aircraft_Position = search_result[0]
+                ##print(Aircraft_Position[0])
+                #Aircraft_Position_layers = Aircraft_Position.layers
+
+                #Aircraft_Position_flayer = Aircraft_Position_layers[0]
+
+                #Aircraft_Position_fset = Aircraft_Position_layers[0].query()
+                #Aircraft_Position_fset.sdf
+
+                #Aircraft_Position_features = Aircraft_Position_fset.features
+
+
+
+                #Aircraft_Position_flayer.properties.capabilities
+
+                ##add_result = Aircraft_Position.edit_features(adds = ["jun17tester.geojson"])
+                ##add_result
                 f.write(str(x))
                 #print(repr(data))
                 f.write("\n")
+                round_counter += 1
+
+
+
+
             except KeyboardInterrupt:
                 print("***********2***********")
+                endtime = time.strftime("%H:%M:%S")
                 print("i want to close client socket2")
+                print("this time, we had", chunk_counter, "chunks out of", round_counter, "total rounds")
+                print("elapsed time:", start_time, endtime)
                 #conn.shutdown(1)  # this makes sure it happens in a timely manner, close then closes it
                 #conn.close()  # conn is because this is the listening side, otherwise we are trying to send and cant
                 #s.shutdown(1)
@@ -79,16 +191,26 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 break
             except socket.error:
                 print("************3**********")
+                endtime = "%H:%M:%S"
                 print("a socket erro has occured, e = ", socket.error)
+                print("this time, we had", chunk_counter, "chunks out of", round_counter, "total rounds")
+                print("elapsed time:", start_time,  endtime)
                 #conn.shutdown(1)  # this makes sure it happens in a timely manner, close then closes it
                 #conn.close()  # conn is because this is the listening side, otherwise we are trying to send and cant
+                s.shutdown(2)
+                s.close()
                 f.close()
                 break
             #send_map(repr(data))
             if not data:
                 print("***********4***********")
+                endtime = "%H:%M:%S"
+                print("this time, we had", chunk_counter, "chunks out of", round_counter, "total rounds")
+                print("elapsed time:", start_time, endtime)
                 #conn.shutdown(1)  # this makes sure it happens in a timely manner, close then closes it
                 #conn.close()  # conn is because this is the listening side, otherwise we are trying to send and cant
+                s.shutdown(2)
+                s.close()
                 f.close()
                 break
         #conn.close()
